@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Domenica Economy">
 <meta name="theme-color" content="#FCF4F7">
 <meta name="color-scheme" content="light">
-<meta name="description" content="I tuoi soldi, il tuo business. Tutto sotto controllo con Domenica Economy.">
+<meta name="description" content="I tuoi soldi, ogni giorno. Tutto sotto controllo con Domenica Economy.">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
 <link rel="icon" type="image/svg+xml" href="icon.svg?v=2">
 <title>Domenica Economy</title>
@@ -286,7 +286,7 @@ h4.sub{font-size:14px;font-weight:600;color:var(--tx);margin:22px 0 10px}
 .lock-brand img{width:100%;height:100%}
 .pad button{box-shadow:0 2px 8px -6px #44253633}
 .btn.danger{border-color:#B8443744}
-button:focus-visible,[data-order]:focus-visible{outline:3px solid #BB5083;outline-offset:3px}
+button:focus-visible{outline:3px solid #BB5083;outline-offset:3px}
 button{touch-action:manipulation}
 body.sheet-open{overflow:hidden}
 @media(hover:hover){.wallet-card:hover,.stat:hover,.act:hover{border-color:#D6A4BB}.row:hover,.watch-row:hover{background:#FFF5F9}.tab:hover{background:#FFFFFF0A}}
@@ -424,58 +424,6 @@ function post(wallet,amount,label,kind,ref,date,cat){
 function unpost(ref){S.ledger=S.ledger.filter(function(e){return e.ref!==ref;});}
 function balance(w){return c2(S.ledger.reduce(function(t,e){return e.w===w?t+e.a:t;},0));}
 
-/* ============================ BUSINESS ============================ */
-function oPieces(o){return o.items.reduce(function(t,i){return t+i.qty;},0);}
-function oShare(o){var q=num(o.share);return (q>0&&q<=1)?q:1;}   /* quanto dell'ordine e tuo */
-function oSocio(o){return oShare(o)<1;}
-function oPaid(o){return num(o.total);}                    /* tutto compreso fino al magazzino */
-function oShip2(o){return o.ship2paid?num(o.ship2):0;}     /* spedizione per l'Italia */
-function oCost(o){return oPaid(o)+oShip2(o);}
-function oOpen(o){return !o.ship2paid;}
-function oState(o){
-  if(!o.ship2paid)return {k:"pagare",t:"spedizione da pagare",c:"wait"};
-  if(!o.arrived)return {k:"transito",t:"in transito",c:""};
-  return {k:"arrivato",t:"arrivato",c:"ok"};
-}
-function unitCost(o,it){var p=oPieces(o);return p?oCost(o)/p:0;}
-function soldQty(oid,iid){return S.sales.reduce(function(t,s){return (s.oid===oid&&s.iid===iid)?t+s.qty:t;},0);}
-function leftQty(o,it){return Math.max(0,it.qty-soldQty(o.id,it.id));}
-function oRevenue(oid){return S.sales.reduce(function(t,s){return s.oid===oid?t+s.price:t;},0);}
-function stockValue(){                     /* quanto ti costa la roba invenduta, la tua parte */
-  return S.orders.reduce(function(t,o){
-    return t+o.items.reduce(function(u,it){return u+leftQty(o,it)*unitCost(o,it);},0)*oShare(o);
-  },0);
-}
-function stockByName(){
-  var map={};
-  S.orders.forEach(function(o){
-    o.items.forEach(function(it){
-      var q=leftQty(o,it);if(!q)return;
-      var k=it.name.trim();
-      if(!map[k])map[k]={n:k,q:0,v:0};
-      map[k].q+=q;map[k].v+=q*unitCost(o,it)*oShare(o);
-    });
-  });
-  return Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return b.q-a.q;});
-}
-function stockPieces(){
-  return S.orders.reduce(function(t,o){
-    return t+o.items.reduce(function(u,it){return u+leftQty(o,it);},0);},0);
-}
-function saleProfit(s){                    /* il profitto che resta a te */
-  var o=find(S.orders,s.oid);if(!o)return 0;
-  var it=find(o.items,s.iid);if(!it)return 0;
-  return (s.price-unitCost(o,it)*s.qty)*oShare(o);
-}
-function saleSocio(s){                     /* quanto di quella vendita spetta al socio */
-  var o=find(S.orders,s.oid);if(!o||!oSocio(o))return 0;
-  return s.price*(1-oShare(o));
-}
-function socioDovuto(){                    /* da dare ai soci, sulle vendite gia fatte */
-  return c2(S.sales.reduce(function(t,x){return t+saleSocio(x);},0));
-}
-function oMyCost(o){return oCost(o)*oShare(o);}
-function oMyRevenue(id){var o=find(S.orders,id);return oRevenue(id)*(o?oShare(o):1);}
 function find(arr,id){for(var i=0;i<arr.length;i++)if(arr[i].id===id)return arr[i];return null;}
 
 /* ============================ TOTALI ============================ */
@@ -586,10 +534,6 @@ function dailySeries(m){
   return out;
 }
 function netWorth(){return liquid()-debtLeft();}   /* i soldi dell'ordine sono gia una spesa */
-function profitMonth(){
-  return S.sales.reduce(function(t,s){return monthOf(s.date)===curMonth()?t+saleProfit(s):t;},0);
-}
-
 /* ============================ GRAFICO ============================ */
 var CHARTS={};
 function chart(id,pts,h){
@@ -670,7 +614,6 @@ var view="home",MQ="",MCAT="";
 var TABS=[
  {k:"home",n:"Home",i:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/>'},
  {k:"mov",n:"Movimenti",i:'<path d="M4 7h13"/><path d="M14 4l3 3-3 3"/><path d="M20 17H7"/><path d="M10 14l-3 3 3 3"/>'},
- {k:"biz",n:"Business",i:'<path d="M3 8h18l-1.5 12h-15z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/>'},
  {k:"stats",n:"Andamento",i:'<path d="M4 18V9M9 18V5M14 18v-6M19 18v-9"/>'}
 ];
 function renderTabs(){
@@ -684,7 +627,7 @@ function refreshMov(){var el=document.getElementById("movList");if(el)el.innerHT
 /* ============================ RENDER ============================ */
 function render(){
   var el=document.getElementById("app");
-  el.innerHTML=({home:vHome,mov:vMov,biz:vBiz,play:vPlay,debts:vDebts,loans:vLoans,
+  el.innerHTML=({home:vHome,mov:vMov,play:vPlay,debts:vDebts,loans:vLoans,
     backup:vBackup,stats:vStats}[view]||vHome)();
   el.dataset.view=view;
   renderTabs();
@@ -760,7 +703,6 @@ function vHome(){
   h+='<div class="actions">'+
     '<button class="act-b primary" data-sheet="menu"><i>'+ICO(I.plus,"var(--tx)",21)+'</i><span>Aggiungi</span></button>'+
     '<button class="act-b" data-sheet="giro"><i>'+ICO(I.swap,"var(--acc)",21)+'</i><span>Sposta soldi</span></button>'+
-    '<button class="act-b" data-sheet="sale"><i>'+ICO(I.bag,"var(--acc)",21)+'</i><span>Vendita</span></button>'+
     '</div>';
 
   h+='<div class="sec"><div class="sec-h"><h2>I tuoi portafogli</h2><button class="link" data-sheet="conti">Gestisci</button></div><div class="wallet-grid">'+GRUPPI.map(function(g){
@@ -778,7 +720,6 @@ function vHome(){
 
   h+='<div class="sec"><div class="sec-h"><h2>Da tenere d\'occhio</h2></div>'+
      '<div class="watch-list">'+
-     watchRow("biz","var(--warn)","Ancora da vendere",eur(stockValue()),"")+
      watchRow("play","var(--neg)","Gioco, da sempre",eur(playBalance(),true),playBalance()<0?"neg":"")+
      (loanLeft()>0?watchRow("loans","var(--acc)","Soldi da riavere",eur(loanLeft()),""):'')+
      (deb>0?watchRow("debts","var(--tx-2)","Debiti da pagare",eur(deb),"neg"):'')+
@@ -814,7 +755,7 @@ function walletRow(g,quanti,saldo){
     '<span class="wallet-arrow" aria-hidden="true">'+ICO(I.chev,"currentColor",13)+'</span></button>';
 }
 function watchRow(target,color,label,value,cls){
-  var icon={biz:I.box,play:I.dice,loans:I.person,debts:I.doc}[target]||I.doc;
+  var icon={play:I.dice,loans:I.person,debts:I.doc}[target]||I.doc;
   return '<button class="watch-row" data-go="'+target+'">'+
     '<span class="row-i" style="background:var(--surf-2)">'+ICO(icon,color,17)+'</span>'+
     '<span class="watch-title">'+label+'</span>'+
@@ -944,80 +885,6 @@ function labMonth(m){
   return mm[i-1]+" "+p[0];
 }
 
-/* ---------- BUSINESS ---------- */
-function vBiz(){
-  var h=header("Business",addBtn("order","Ordine"));
-  var pm=profitMonth(),allProfit=S.sales.reduce(function(t,x){return t+saleProfit(x);},0);
-  var pieces=stockPieces(),sold=S.sales.reduce(function(t,x){return t+x.qty;},0);
-
-  h+='<div class="card summary-card">'+
-     '<div style="font-size:13px;color:var(--tx-2)">Ancora da vendere</div>'+
-     '<div class="summary-value">'+
-       eur(stockValue())+'</div>'+
-     '<div class="bar"><i style="width:'+(pieces+sold?Math.round(sold/(pieces+sold)*100):0)+'%"></i></div>'+
-     '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12.5px">'+
-       '<span class="mut">'+pieces+' pezzi in magazzino</span>'+
-       '<span class="mut">'+sold+' venduti</span></div></div>';
-
-  h+='<div class="grid2" style="margin-top:9px">'+
-     '<div class="stat" style="cursor:default"><div class="t">Profitto totale</div>'+
-       '<div class="v '+(allProfit>=0?"pos":"neg")+'">'+eur(allProfit,true)+'</div></div>'+
-     '<div class="stat" style="cursor:default"><div class="t">Questo mese</div>'+
-       '<div class="v '+(pm>=0?"pos":"neg")+'">'+eur(pm,true)+'</div></div></div>';
-  if(socioDovuto()>0)
-    h+='<div class="card" style="margin-top:9px;display:flex;align-items:center;gap:12px">'+
-      '<span class="dot" style="background:var(--warn)"></span>'+
-      '<span style="flex:1;font-size:14px">Da dare ai soci</span>'+
-      '<span class="row-a warn">'+eur(socioDovuto())+'</span></div>';
-
-  var mag=stockByName();
-  if(mag.length){
-    h+='<div class="sec"><div class="sec-h"><h2>Magazzino</h2>'+
-      '<span style="font-size:13px;color:var(--tx-2)">'+pieces+' pezzi &middot; '+eur(stockValue())+'</span></div>'+
-      '<div class="card tight">'+mag.map(function(x){
-        return '<button class="row" data-stockname="'+esc(x.n)+'">'+
-          '<div class="row-i">'+x.q+'</div>'+
-          '<div class="row-m"><b>'+esc(x.n)+'</b><span>'+eur(x.v/x.q)+' l\'uno</span></div>'+
-          '<div class="row-a">'+eur(x.v)+'</div>'+ICO(I.chev,"#4A5160",15)+'</button>';
-      }).join("")+'</div>'+
-      '<p class="tile-s" style="margin-top:8px">Tocca un articolo per vedere tutte le sue vendite.</p></div>';
-  }
-  h+='<div class="sec"><div class="sec-h"><h2>Ordini</h2></div>';
-  if(!S.orders.length)h+='<div class="card"><div class="empty">Nessun ordine.<br>Registra il primo ordine dal fornitore.</div></div>';
-  S.orders.slice().sort(byDateDesc).forEach(function(o){
-    var cost=oMyCost(o),rev=oMyRevenue(o.id),p=oPieces(o),left=o.items.reduce(function(t,i){return t+leftQty(o,i);},0);
-    var pct=cost>0?Math.min(100,rev/cost*100):0,st=oState(o);
-    h+='<div class="card" data-order="'+o.id+'" role="button" tabindex="0" style="cursor:pointer;margin-bottom:9px">'+
-      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">'+
-      '<div><div style="font-size:15px;font-weight:600">'+esc(o.name)+'</div>'+
-      '<div style="font-size:12.5px;color:var(--tx-2);margin-top:4px">'+dmy(o.date)+' &middot; '+p+' pezzi &middot; '+
-        eur(p?oMyCost(o)/p:0)+' l\'uno'+
-        (oSocio(o)?' &middot; <span class="acc">in societ&agrave; '+Math.round(oShare(o)*100)+'%</span>':'')+
-        '</div></div>'+
-      '<span class="tag '+(st.c||"off")+'">'+st.t+'</span></div>'+
-      '<div class="bar"><i class="'+(pct>=100?"done":"")+'" style="width:'+pct.toFixed(0)+'%"></i></div>'+
-      '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12.5px">'+
-        '<span class="mut">rientrato '+eur(rev)+'</span>'+
-        (rev>=cost?'<span class="pos">tutto recuperato</span>':
-         '<span class="warn">mancano '+eur(cost-rev)+'</span>')+'</div>'+
-      '<div style="font-size:12.5px;color:var(--tx-3);margin-top:4px">'+left+' pezzi ancora da vendere</div></div>';
-  });
-  h+='</div>';
-
-  var sales=S.sales.slice().sort(byDateDesc);
-  h+='<div class="sec"><div class="sec-h"><h2>Vendite'+(sales.length?' &middot; '+sales.length:'')+'</h2>'+
-     (stockPieces()?'<button class="link" data-sheet="sale">+ Vendita</button>':'')+'</div><div class="card tight">'+
-     (sales.length?sales.map(function(x){
-        var o=find(S.orders,x.oid),it=o?find(o.items,x.iid):null;
-        return '<button class="row" data-del-sale="'+x.id+'">'+
-          '<div class="row-i" style="background:var(--pos-soft)">'+ICO(I.bag,"var(--pos)",17)+'</div>'+
-          '<div class="row-m"><b>'+esc(it?it.name:"articolo")+(x.qty>1?" &times;"+x.qty:"")+'</b>'+
-          '<span>'+dmy(x.date)+' &middot; '+esc(x.channel)+(o?' &middot; '+esc(o.name):'')+'</span></div>'+
-          '<div class="row-a pos">'+eur(x.price,true)+'</div></button>';
-      }).join(""):'<div class="empty">Nessuna vendita registrata.</div>')+'</div></div>';
-  return h;
-}
-
 /* ---------- GIOCO ---------- */
 function vPlay(){
   var b=playBalance(),m=playMonth();
@@ -1116,9 +983,6 @@ function vLoans(){
 
 /* ---------- ANDAMENTO E RIEPILOGO ---------- */
 var STATM="";
-function monthProfit(m){
-  return S.sales.reduce(function(t,x){return monthOf(x.date)===m?t+saleProfit(x):t;},0);
-}
 function monthPlay(m){
   return S.play.reduce(function(t,x){
     return monthOf(x.date)===m?t+(x.kind==="prelievo"?x.amount:-x.amount):t;},0);
@@ -1145,7 +1009,7 @@ function vStats(){
      '<div class="card">'+chart("c2",dd,120)+
      '<div style="font-size:12px;color:var(--tx-3);margin-top:4px">Giorno per giorno</div></div></div>';
 
-  var io=monthInOut(STATM),pf=monthProfit(STATM),pl=monthPlay(STATM);
+  var io=monthInOut(STATM),pl=monthPlay(STATM);
   var end=balanceAt(STATM===curMonth()?today():lastDay(STATM));
   var first=firstMonth();
   h+='<div class="sec"><div class="mnav">'+
@@ -1160,7 +1024,6 @@ function vStats(){
       '<div class="kv top"><span>Differenza del mese</span><b class="'+((io.in+io.out)>=0?"pos":"neg")+'">'+
         eur(io.in+io.out,true)+'</b></div></div>'+
      '<div class="card">'+
-      '<div class="kv"><span>Profitto dalle vendite</span><b class="'+(pf>=0?"pos":"neg")+'">'+eur(pf,true)+'</b></div>'+
       '<div class="kv"><span>Gioco</span><b class="'+(pl<0?"neg":pl>0?"pos":"")+'">'+eur(pl,true)+'</b></div>'+
       '<div class="kv top"><span>Soldi a fine mese</span><b>'+eur(end)+'</b></div></div></div>';
 
@@ -1201,8 +1064,6 @@ function vBackup(){
      '</button></div></div>';
   h+='<div class="sec"><div class="card">'+
      '<div class="kv"><span>Movimenti</span><b>'+S.ledger.length+'</b></div>'+
-     '<div class="kv"><span>Ordini</span><b>'+S.orders.length+'</b></div>'+
-     '<div class="kv"><span>Vendite</span><b>'+S.sales.length+'</b></div>'+
      '<div class="kv"><span>Gioco</span><b>'+S.play.length+'</b></div>'+
      '<div class="kv"><span>Da riavere</span><b>'+S.loans.length+'</b></div></div></div>';
   h+='<div class="sec"><button class="btn danger" id="wipe">Cancella tutto e ricomincia</button></div>';
@@ -1261,15 +1122,13 @@ function sheetAdd(){
    ["spesa","Spesa","Qualcosa che hai comprato","#F2705E"],
    ["entrata","Entrata","Soldi che ti sono arrivati","#46C98B"],
    ["giro","Giro di soldi","Tra i tuoi portafogli","#8B93A1","⇄"],
-   ["sale","Vendita","Hai venduto un pezzo del magazzino","#8B9BF7"],
-   ["order","Ordine fornitore","Nuovo stock dalla Cina","#8B9BF7"],
    ["play","Gioco","Deposito o prelievo","#C77DFF","G"],
    ["debt","Debito o rata","Klarna e simili","#9AA3B2"],
    ["loan","Soldi da riavere","Prestati a qualcuno o in arrivo","#8B9BF7"]
   ];
   openSheet('<h3>Cosa registri?</h3><p class="hint">Scegli e in due tocchi è fatto.</p>'+
    acts.map(function(a){
-     var icon={spesa:I.down,entrata:I.up,giro:I.swap,sale:I.bag,order:I.box,play:I.dice,debt:I.doc,loan:I.person}[a[0]];
+     var icon={spesa:I.down,entrata:I.up,giro:I.swap,play:I.dice,debt:I.doc,loan:I.person}[a[0]];
      return '<button class="act" data-sheet="'+a[0]+'">'+
       '<i style="background:var(--acc-soft);color:var(--acc)">'+ICO(icon,"currentColor",19)+'</i>'+
       '<span style="flex:1"><b>'+a[1]+'</b><span>'+a[2]+'</span></span></button>';
@@ -1406,305 +1265,6 @@ function sheetAdjust(w){
     post(w,d,"Correzione saldo","rettifica",null,today());
     save();closeSheet();render();toast("Saldo corretto");
   });
-}
-
-/* ---- ordine ---- */
-var draftItems=[{n:"",q:"",p:""}];
-function sheetOrder(){
-  draftItems=[{n:"",q:"",p:""}];
-  openSheet('<h3>Nuovo ordine</h3><p class="hint">Quanto hai pagato in tutto e cosa hai preso. La spedizione per l\'Italia la aggiungi dopo.</p>'+
-   '<div class="f">'+
-    '<div><label class="fl">Nome ordine</label><input class="fi" id="o_name" placeholder="es. Ordine USFans agosto"></div>'+
-    '<div class="f2"><div><label class="fl">Data</label>'+dateIn("o_d")+'</div>'+
-     '<div><label class="fl">Pagato da</label>'+walletSelN("o_w",primoDi("conto"),"Nessuno — gi&agrave; pagato prima")+'</div></div>'+
-    '<div><label class="fl">Totale pagato al fornitore</label>'+
-     '<input class="fi mono" id="o_s1" inputmode="decimal" placeholder="302,88">'+
-     '<p class="tile-s" style="margin:7px 0 0">Merce + commissioni + spedizione fino al magazzino: il numero che ti esce dal sito.</p></div>'+
-    '<div><label class="fl">Cosa hai preso</label><div id="o_items"></div>'+
-     '<button class="btn ghost" id="o_add" style="padding:10px;margin-top:8px">+ Aggiungi articolo</button></div>'+
-    '<div><label class="fl">Di chi &egrave; l\'ordine</label><div class="seg" id="o_soc">'+
-     '<button class="on" data-s="mio">Tutto mio</button>'+
-     '<button data-s="socio">In societ&agrave;</button></div>'+
-     '<div id="o_socbox" hidden style="margin-top:11px">'+
-      '<label class="fl">La tua quota</label>'+
-      '<input class="fi mono" id="o_quota" inputmode="numeric" value="50" placeholder="50">'+
-      '<p class="tile-s" style="margin:7px 0 0">In percentuale. La roba resta tutta a te, ma i guadagni si dividono cos&igrave;.</p>'+
-     '</div></div>'+
-    '<div class="note" id="o_prev">Scrivi il totale e i pezzi per vedere quanto ti costa ognuno.</div>'+
-    '<div class="note">Se i soldi erano gi&agrave; usciti prima, o stai solo rifacendo un ordine che avevi cancellato, scegli <b>Nessuno</b>: l\'ordine entra nel business senza toccare conto e contanti.</div>'+
-    '<p class="err" id="o_err" hidden></p>'+
-    '<button class="btn" id="o_go">Registra ordine</button></div>');
-  drawItems();
-  segify("o_soc");
-  document.getElementById("o_soc").addEventListener("click",function(){
-    document.getElementById("o_socbox").hidden=(segVal("o_soc")!=="socio");
-    preview();
-  });
-  document.getElementById("o_quota").oninput=preview;
-  document.getElementById("o_add").onclick=function(){readItems();draftItems.push({n:"",q:"",p:""});drawItems();};
-  document.getElementById("o_s1").oninput=preview;
-  bind("o_go",function(){
-    readItems();
-    var items=draftItems.filter(function(i){return i.n.trim()&&num(i.q)>0;}).map(function(i){
-      return {id:uid(),name:i.n.trim(),qty:Math.round(num(i.q))};});
-    if(!items.length)return showErr("o_err","Aggiungi almeno un articolo con nome e quantità.");
-    var tot=num(v("o_s1"));
-    if(tot<=0)return showErr("o_err","Scrivi quanto hai pagato in tutto.");
-    var quota=1;
-    if(segVal("o_soc")==="socio"){
-      quota=num(v("o_quota"))/100;
-      if(!(quota>0&&quota<1))return showErr("o_err","La tua quota deve stare tra 1 e 99.");
-    }
-    var o={id:uid(),name:v("o_name").trim()||"Ordine",date:vd("o_d"),wallet:v("o_w"),
-      total:tot,ship2:0,ship2paid:false,share:quota,items:items};
-    S.orders.push(o);
-    if(o.wallet!=="nessuno")
-      post(o.wallet,-tot*quota,"Ordine "+o.name,"ordine","order:"+o.id,o.date);
-    save();closeSheet();render();toast("Ordine registrato");
-  });
-}
-function drawItems(){
-  document.getElementById("o_items").innerHTML=draftItems.map(function(it,i){
-    return '<div class="itemrow" style="margin-bottom:7px">'+
-     '<input class="fi" data-i="'+i+'" data-f="n" placeholder="es. Pochette" value="'+esc(it.n)+'">'+
-     '<input class="fi mono" data-i="'+i+'" data-f="q" inputmode="numeric" placeholder="Qtà" value="'+esc(it.q)+'">'+
-     (draftItems.length>1?'<button class="mini" data-rm="'+i+'">−</button>':'<span></span>')+'</div>';
-  }).join("");
-  var box=document.getElementById("o_items");
-  box.oninput=preview;
-  box.onclick=function(e){
-    var b=e.target.closest("[data-rm]");if(!b)return;
-    readItems();draftItems.splice(parseInt(b.getAttribute("data-rm"),10),1);drawItems();preview();
-  };
-  preview();
-}
-function readItems(){
-  var box=document.getElementById("o_items");if(!box)return;
-  box.querySelectorAll("input").forEach(function(inp){
-    var i=parseInt(inp.getAttribute("data-i"),10);
-    if(draftItems[i])draftItems[i][inp.getAttribute("data-f")]=inp.value;
-  });
-}
-function preview(){
-  readItems();
-  var pieces=draftItems.reduce(function(t,i){return t+num(i.q);},0);
-  var tot=num(v("o_s1"));
-  var el=document.getElementById("o_prev");if(!el)return;
-  if(!pieces||!tot){el.textContent="Scrivi il totale e i pezzi per vedere quanto ti costa ognuno.";return;}
-  var soc=(typeof segVal==="function"&&segVal("o_soc")==="socio");
-  var q=soc?num(v("o_quota"))/100:1;
-  el.innerHTML="<b>"+pieces+" pezzi</b> per <b>"+eur(tot)+"</b> → "+eur(tot/pieces)+" a pezzo."+
-   (soc&&q>0&&q<1?"<br>La tua parte: <b>"+eur(tot*q)+"</b>. Il resto &egrave; del socio."
-    :"<br>&Egrave; un costo provvisorio: quando paghi la spedizione per l\'Italia si aggiorna.");
-}
-
-/* ---- dettaglio ordine ---- */
-function sheetOrderDetail(id){
-  var o=find(S.orders,id);if(!o)return;
-  var cost=oCost(o),rev=oRevenue(o.id),prof=S.sales.filter(function(s){return s.oid===o.id;})
-    .reduce(function(t,s){return t+saleProfit(s);},0);
-  var socio=S.sales.filter(function(s){return s.oid===o.id;})
-    .reduce(function(t,s){return t+saleSocio(s);},0);
-  var st=oState(o);
-  var h='<h3>'+esc(o.name)+'</h3><p class="hint">'+dmy(o.date)+' · '+oPieces(o)+' pezzi · '+
-    (st.k==="pagare"?'<span class="acc">spedizione per l\'Italia non ancora pagata</span>':
-     st.k==="transito"?'<span class="acc">pacco in viaggio</span>':
-     'arrivato'+(o.arrivedDate?' il '+dmy(o.arrivedDate):''))+'</p>';
-  h+='<div class="card"><div class="kv"><span>Pagato al fornitore</span><b>'+eur(oPaid(o))+
-     (o.wallet==="nessuno"?' <span class="mut" style="font-weight:400">(fuori dai conti)</span>':'')+'</b></div>'+
-     '<div class="kv"><span>Spedizione per l\'Italia</span><b>'+(o.ship2paid?eur(num(o.ship2)):"—")+'</b></div>'+
-     '<div class="kv"><span>Costo totale</span><b>'+eur(cost)+'</b></div>'+
-     '<div class="kv"><span>Costo a pezzo</span><b>'+eur(oPieces(o)?cost/oPieces(o):0)+
-       (oOpen(o)?' <span class="acc">prov.</span>':'')+'</b></div>'+
-     '<div class="kv"><span>Incassato finora</span><b class="pos">'+eur(rev)+'</b></div>'+
-     '<div class="kv"><span>Profitto finora</span><b class="'+(prof>=0?"pos":"neg")+'">'+eur(prof,true)+'</b></div>'+
-     (oSocio(o)?
-       '<div class="kv top"><span>La tua quota</span><b class="acc">'+Math.round(oShare(o)*100)+'%</b></div>'+
-       '<div class="kv"><span>La tua parte del costo</span><b>'+eur(oMyCost(o))+'</b></div>'+
-       '<div class="kv"><span>Il tuo costo a pezzo</span><b>'+eur(oPieces(o)?oMyCost(o)/oPieces(o):0)+'</b></div>'+
-       '<div class="kv"><span>Da dare al socio</span><b class="warn">'+eur(socio)+'</b></div>':'')+
-     '</div>'+
-     (oSocio(o)?'<div class="note" style="margin-top:9px">La roba resta tutta a te: quando vendi incassi tutto, e al socio spetta la sua parte. Quando lo paghi, registra l\'uscita come una spesa normale.</div>':'');
-  h+='<h4 class="sub">Articoli</h4>'+
-   '<p class="tile-s" style="margin:-4px 0 10px">Tocca un articolo per vedere tutte le sue vendite. La freccia registra una vendita.</p>'+
-   '<div class="card">'+o.items.map(function(it){
-    var left=leftQty(o,it);
-    return '<button class="row" data-itemsales="'+o.id+'|'+it.id+'"><div class="row-i">'+left+'</div>'+
-     '<div class="row-m"><b>'+esc(it.name)+'</b><span>venduti '+soldQty(o.id,it.id)+' su '+it.qty+
-      ' · restano '+left+'</span></div>'+
-     (left>0?'<span class="mini" data-sell="'+o.id+'|'+it.id+'" style="width:34px">›</span>':
-      '<span class="pill ok">finito</span>')+'</button>';
-  }).join("")+'</div>';
-  if(oOpen(o)){
-    h+='<h4 class="sub">Spedizione per l\'Italia</h4><div class="card">'+
-     '<p class="hint" style="margin:0 0 11px">Quando la paghi ricalcolo il costo di ogni pezzo e l\'ordine passa <b>in transito</b>.</p>'+
-     '<div class="f"><div><label class="fl">Quanto \u00e8 costata in tutto</label>'+
-     '<input class="fi mono" id="s2_amt" inputmode="decimal" placeholder="0,00"></div>'+
-     (oSocio(o)?'<div class="note">In societ&agrave; al '+Math.round(oShare(o)*100)+
-       '%: dal portafoglio esce solo la tua parte.</div>':'')+
-     '<div class="f2"><div><label class="fl">Pagato da</label>'+
-       walletSelN("s2_w",primoDi("conto"),"Nessuno — gi&agrave; pagata")+'</div>'+
-      '<div><label class="fl">Quando</label>'+
-       '<input class="fi" type="date" id="s2_d" value="'+esc(o.date)+'"></div></div>'+
-     '<button class="btn" id="s2_go">Ho pagato la spedizione</button></div></div>';
-  }
-  if(st.k==="transito"){
-    h+='<h4 class="sub">Il pacco</h4><div class="card">'+
-      '<p class="hint" style="margin:0 0 11px">È partito dal magazzino. Quando ti arriva a casa, segnalo qui.</p>'+
-      '<button class="btn" data-arrived="'+o.id+'">Il pacco è arrivato</button></div>';
-  }else if(st.k==="arrivato"){
-    h+='<div style="margin-top:14px"><button class="btn ghost" data-unarrived="'+o.id+'">'+
-      'Non è ancora arrivato</button></div>';
-  }
-  h+='<div style="margin-top:16px;display:flex;gap:9px">'+
-     '<button class="btn ghost" data-editorder="'+o.id+'">Modifica</button>'+
-     '<button class="btn danger" data-delorder="'+o.id+'">Elimina</button></div>';
-  openSheet(h);
-  bind("s2_go",function(){
-    var a=num(v("s2_amt"));if(a<=0)return fail("Metti l'importo della spedizione");
-    o.ship2=a;o.ship2paid=true;o.wallet2=v("s2_w");o.ship2date=v("s2_d")||o.date;
-    if(o.wallet2!=="nessuno")
-      post(o.wallet2,-a*oShare(o),"Spedizione "+o.name,"spedizione","order2:"+o.id,o.ship2date);
-    save();closeSheet();render();toast("Pacco in transito, costi aggiornati");
-  });
-}
-
-/* ---- modifica ordine ---- */
-function sheetOrderEdit(id){
-  var o=find(S.orders,id);if(!o)return;
-  var h='<h3>Modifica ordine</h3><p class="hint">Correggi prezzi, quantità e spedizioni. I costi si ricalcolano.</p>'+
-   '<div class="f"><div><label class="fl">Nome</label>'+
-   '<input class="fi" id="e_name" value="'+esc(o.name)+'"></div>'+
-   '<div><label class="fl">Soldi presi da</label>'+
-    walletSelN("e_w",o.wallet||primoDi("conto"),"Nessuno — non toccare i soldi")+'</div>'+
-   '<div><label class="fl">La tua quota, in percentuale</label>'+
-    '<input class="fi mono" id="e_q" inputmode="numeric" value="'+Math.round(oShare(o)*100)+'"></div>'+
-   '<div class="f2"><div><label class="fl">Totale pagato</label>'+
-    '<input class="fi mono" id="e_s1" inputmode="decimal" value="'+String(oPaid(o).toFixed(2)).replace(".",",")+'"></div>'+
-    '<div><label class="fl">Sped. Italia</label>'+
-    '<input class="fi mono" id="e_s2" inputmode="decimal" value="'+
-      (o.ship2paid?String(num(o.ship2).toFixed(2)).replace(".",","):"")+'" placeholder="non pagata"></div></div>'+
-   '<div><label class="fl">Articoli</label>'+o.items.map(function(it,i){
-      var sold=soldQty(o.id,it.id);
-      return '<div class="itemrow" style="margin-bottom:7px">'+
-       '<input class="fi" id="e_n'+i+'" value="'+esc(it.name)+'">'+
-       '<input class="fi mono" id="e_q'+i+'" inputmode="numeric" value="'+it.qty+'">'+
-       '<span class="tile-s" style="text-align:center">'+(sold?"−"+sold:"")+'</span>'+
-       '</div>';
-    }).join("")+
-    '<p class="tile-s">Il numero a destra sono i pezzi già venduti: sotto quello non si può scendere.</p></div>'+
-   '<p class="err" id="e_err" hidden></p>'+
-   '<button class="btn" id="e_go">Salva modifiche</button></div>';
-  openSheet(h);
-  bind("e_go",function(){
-    for(var i=0;i<o.items.length;i++){
-      var q=Math.round(num(v("e_q"+i))),sold=soldQty(o.id,o.items[i].id);
-      if(q<sold)return showErr("e_err","«"+o.items[i].name+"»: hai già venduto "+sold+" pezzi, la quantità non può essere "+q+".");
-      if(q<0)return showErr("e_err","Le quantità non possono essere negative.");
-    }
-    o.name=v("e_name").trim()||o.name;
-    for(var j=0;j<o.items.length;j++){
-      o.items[j].name=v("e_n"+j).trim()||o.items[j].name;
-      o.items[j].qty=Math.round(num(v("e_q"+j)));
-    }
-    o.total=num(v("e_s1"));
-    var eq=num(v("e_q"))/100;
-    o.share=(eq>0&&eq<=1)?eq:1;
-    var s2=v("e_s2").trim();
-    if(s2===""){o.ship2=0;o.ship2paid=false;unpost("order2:"+o.id);}
-    else{o.ship2=num(s2);o.ship2paid=true;}
-    /* riscrivo le uscite collegate con gli importi nuovi */
-    o.wallet=v("e_w");
-    var w=o.wallet;
-    unpost("order:"+o.id);
-    if(w!=="nessuno")
-      post(w,-oPaid(o)*oShare(o),"Ordine "+o.name,"ordine","order:"+o.id,o.date);
-    unpost("order2:"+o.id);
-    if(o.ship2paid){
-      var w2=o.wallet2||w;
-      if(w2!=="nessuno")
-        post(w2,-num(o.ship2)*oShare(o),"Spedizione "+o.name,"spedizione","order2:"+o.id,o.ship2date||o.date);
-    }
-    save();closeSheet();render();toast("Ordine aggiornato");
-  });
-}
-
-/* ---- tutte le vendite di un articolo ---- */
-function sheetVendite(nome,sotto,lista,pre,tornaOrdine){
-  var v=lista.slice().sort(byDateDesc);
-  var pezzi=v.reduce(function(t,x){return t+x.qty;},0);
-  var incasso=v.reduce(function(t,x){return t+x.price;},0);
-  var prof=v.reduce(function(t,x){return t+saleProfit(x);},0);
-  var soc=v.reduce(function(t,x){return t+saleSocio(x);},0);
-  var h='<h3>'+esc(nome)+'</h3><p class="hint">'+sotto+'</p>';
-  h+='<div class="card">'+
-    '<div class="kv"><span>Pezzi venduti</span><b>'+pezzi+'</b></div>'+
-    '<div class="kv"><span>Incassato in tutto</span><b class="pos">'+eur(incasso)+'</b></div>'+
-    (soc>0.005?'<div class="kv"><span>Di cui spetta al socio</span><b class="warn">'+eur(soc)+'</b></div>':'')+
-    '<div class="kv top"><span>Il tuo guadagno</span><b class="'+(prof>=0?"pos":"neg")+'">'+eur(prof,true)+'</b></div>'+
-    '</div>';
-  if(pre)h+='<div style="margin-top:12px"><button class="btn" data-sell="'+pre+'">Registra una vendita</button></div>';
-  h+='<h4 class="sub">'+(v.length?v.length+(v.length===1?' vendita':' vendite'):'Nessuna vendita')+'</h4>'+
-   '<div class="card tight">'+(v.length?v.map(function(x){
-      var dove=walletName(x.wallet);
-      return '<button class="row" data-del-sale="'+x.id+'">'+
-       '<div class="row-i" style="background:var(--pos-soft)">'+ICO(I.bag,"var(--pos)",17)+'</div>'+
-       '<div class="row-m"><b>'+dmy(x.date)+(x.qty>1?' &middot; '+x.qty+' pezzi':'')+'</b>'+
-       '<span>'+esc(x.channel)+(dove!==x.channel?' &middot; '+esc(dove):'')+'</span></div>'+
-       '<div class="row-r"><div class="row-a pos">'+eur(x.price,true)+'</div>'+
-       '<span style="font-size:11.5px;color:var(--tx-3);white-space:nowrap">guadagno '+
-         eur(saleProfit(x),true)+'</span></div></button>';
-    }).join(""):'<div class="empty">Questo articolo non l\'hai ancora venduto.</div>')+'</div>';
-  if(v.length)h+='<p class="tile-s" style="margin-top:9px">Tocca una vendita per eliminarla.</p>';
-  if(tornaOrdine)h+='<div style="margin-top:14px"><button class="btn ghost" data-order="'+tornaOrdine+'">Torna all\'ordine</button></div>';
-  openSheet(h);
-}
-
-/* ---- vendita ---- */
-function sheetSale(pre){
-  var opts=[];
-  S.orders.forEach(function(o){o.items.forEach(function(it){
-    var l=leftQty(o,it);if(l>0)opts.push({k:o.id+"|"+it.id,t:it.name+" — "+l+" disp. ("+o.name+")"});});});
-  if(!opts.length){openSheet('<h3>Niente in magazzino</h3><p class="hint">Registra prima un ordine dal fornitore.</p>'+
-    '<button class="btn" data-sheet="order">Registra un ordine</button>');return;}
-  openSheet('<h3>Nuova vendita</h3><p class="hint">Scala il pezzo dal magazzino e calcola il profitto vero.</p>'+
-   '<div class="f"><div><label class="fl">Articolo</label><select class="fi" id="v_it">'+
-    opts.map(function(o){return '<option value="'+o.k+'"'+(pre===o.k?" selected":"")+'>'+esc(o.t)+'</option>';}).join("")+
-    '</select></div>'+
-   '<div class="f2"><div><label class="fl">Quantità</label>'+
-     '<input class="fi mono" id="v_q" inputmode="numeric" value="1"></div>'+
-    '<div><label class="fl">Prezzo incassato</label>'+
-     '<input class="fi mono" id="v_p" inputmode="decimal" placeholder="0,00"></div></div>'+
-   '<div class="f2"><div><label class="fl">Dove</label><select class="fi" id="v_c">'+
-     '<option>Vinted</option><option>Wallapop</option><option>Di persona</option><option>Altro</option></select></div>'+
-    '<div><label class="fl">Incassato su</label>'+walletSel("v_w",primoDi("vinted"))+'</div></div>'+
-   '<div><label class="fl">Data</label>'+dateIn("v_d")+'</div>'+
-   '<div class="note" id="v_prev">Scegli l\'articolo e il prezzo.</div>'+
-   '<p class="err" id="v_err" hidden></p>'+
-   '<button class="btn" id="v_go">Registra vendita</button></div>');
-  ["v_it","v_q","v_p"].forEach(function(id){document.getElementById(id).oninput=vPrev;
-    document.getElementById(id).onchange=vPrev;});
-  vPrev();
-  bind("v_go",function(){
-    var k=v("v_it").split("|"),o=find(S.orders,k[0]);if(!o){BUSY=false;return;}
-    var it=find(o.items,k[1]),q=Math.round(num(v("v_q"))),p=num(v("v_p"));
-    if(q<1)return showErr("v_err","La quantità deve essere almeno 1.");
-    if(q>leftQty(o,it))return showErr("v_err","Hai solo "+leftQty(o,it)+" pezzi disponibili.");
-    if(p<=0)return showErr("v_err","Metti il prezzo che hai incassato.");
-    var s={id:uid(),oid:o.id,iid:it.id,qty:q,price:p,channel:v("v_c"),wallet:v("v_w"),date:vd("v_d")};
-    S.sales.push(s);
-    post(s.wallet,p,"Venduto "+it.name+(q>1?" ×"+q:""),"vendita","sale:"+s.id,s.date);
-    save();closeSheet();render();toast("Vendita registrata");
-  });
-}
-function vPrev(){
-  var el=document.getElementById("v_prev");if(!el)return;
-  var k=v("v_it").split("|"),o=find(S.orders,k[0]);if(!o)return;
-  var it=find(o.items,k[1]),q=Math.round(num(v("v_q")))||1,p=num(v("v_p"));
-  var c=unitCost(o,it)*q*oShare(o),pr=(p-unitCost(o,it)*q)*oShare(o);
-  el.innerHTML=(oSocio(o)?"La tua parte del costo: <b>":"Costo medio dell'ordine: <b>")+eur(c)+"</b>"+(oOpen(o)?" (provvisorio, manca la spedizione)":"")+
-   (p>0?" · ci guadagni <b>"+eur(pr,true)+"</b>"+
-     (oSocio(o)?", al socio vanno "+eur(p*(1-oShare(o))):""):"");
 }
 
 function segify(id){
@@ -1878,6 +1438,10 @@ function sheetLedger(id){
   var testa='<h3>'+esc(e.l)+'</h3><p class="hint">'+dmy(e.d)+' · '+esc(e.w)+' · '+
     '<b class="'+(e.a<0?"neg":"pos")+'">'+eur(e.a,true)+'</b></p>';
 
+  if(/^(order|order2|sale):/.test(e.ref||"")){
+    openSheet(testa+'<div class="note">Questo movimento fa parte dello storico e resta nel saldo. La gestione di ordini e vendite non &egrave; pi&ugrave; disponibile. I dati originali sono conservati nel backup.</div>');
+    return;
+  }
   if(e.ref&&e.k!=="rata"&&e.k!=="giro"&&e.k!=="prestito"&&e.k!=="rimborso"){
     openSheet(testa+'<div class="note">Questo movimento nasce da '+(origine||"un\'altra sezione")+
       ': per cambiarlo vai lì e modifica quello, così i conti restano collegati.</div>');
@@ -2011,7 +1575,7 @@ document.getElementById("pad").addEventListener("click",function(e){
 document.getElementById("scrim").onclick=closeSheet;
 
 var SHEETS={menu:sheetAdd,spesa:function(){sheetFlow("spesa");},entrata:function(){sheetFlow("entrata");},
-  pin:sheetPin,giro:sheetGiro,order:sheetOrder,sale:function(){sheetSale();},loan:sheetLoan,conti:sheetConti,
+  pin:sheetPin,giro:sheetGiro,loan:sheetLoan,conti:sheetConti,
   play:function(){sheetPlay(false);},storico:function(){sheetPlay(true);},debt:sheetDebt};
 
 document.addEventListener("click",function(e){
@@ -2034,42 +1598,6 @@ document.addEventListener("click",function(e){
       S.conti=S.conti.filter(function(x){return x.id!==cid;});
       save();closeSheet();render();toast("Conto tolto");
     });
-    return;
-  }
-  var ar=t.closest("[data-arrived]");
-  if(ar){var oa=find(S.orders,ar.getAttribute("data-arrived"));
-    if(oa){oa.arrived=true;oa.arrivedDate=today();save();closeSheet();render();toast("Ordine arrivato");}
-    return;}
-  var un=t.closest("[data-unarrived]");
-  if(un){var ou=find(S.orders,un.getAttribute("data-unarrived"));
-    if(ou){ou.arrived=false;ou.arrivedDate="";save();closeSheet();render();toast("Rimesso in transito");}
-    return;}
-  var oe=t.closest("[data-editorder]");
-  if(oe){var oid2=oe.getAttribute("data-editorder");closeSheet();
-    setTimeout(function(){sheetOrderEdit(oid2);},280);return;}
-  var od=t.closest("[data-order]");if(od)return sheetOrderDetail(od.getAttribute("data-order"));
-  var sl=t.closest("[data-sell]");if(sl){closeSheet();setTimeout(function(){sheetSale(sl.getAttribute("data-sell"));},280);return;}
-  var isl=t.closest("[data-itemsales]");
-  if(isl){
-    var kk=isl.getAttribute("data-itemsales").split("|");
-    var oo=find(S.orders,kk[0]);if(!oo)return;
-    var iit=find(oo.items,kk[1]);if(!iit)return;
-    var lf=leftQty(oo,iit);
-    sheetVendite(iit.name,
-      esc(oo.name)+' &middot; venduti '+soldQty(oo.id,iit.id)+' su '+iit.qty+', restano '+lf,
-      S.sales.filter(function(x){return x.oid===oo.id&&x.iid===iit.id;}),
-      lf>0?(oo.id+"|"+iit.id):null, oo.id);
-    return;
-  }
-  var stn=t.closest("[data-stockname]");
-  if(stn){
-    var nome=stn.getAttribute("data-stockname"),lista=[],disp=[],rest=0;
-    S.orders.forEach(function(oo){oo.items.forEach(function(iit){
-      if(iit.name.trim()!==nome)return;
-      var l=leftQty(oo,iit); rest+=l; if(l>0)disp.push(oo.id+"|"+iit.id);
-      S.sales.forEach(function(x){if(x.oid===oo.id&&x.iid===iit.id)lista.push(x);});
-    });});
-    sheetVendite(nome,'In magazzino ne restano '+rest,lista,disp.length===1?disp[0]:null,null);
     return;
   }
   var py=t.closest("[data-pay]");if(py)return sheetPay(py.getAttribute("data-pay"));
@@ -2111,34 +1639,12 @@ document.addEventListener("click",function(e){
     });
     return;
   }
-  var ds=t.closest("[data-del-sale]");
-  if(ds){
-    var sid=ds.getAttribute("data-del-sale");
-    ask("Eliminare la vendita?","Il pezzo torna in magazzino e l'incasso viene tolto.","Elimina",function(){
-      S.sales=S.sales.filter(function(x){return x.id!==sid;});unpost("sale:"+sid);
-      save();closeSheet();render();toast("Vendita eliminata");
-    });
-    return;
-  }
   var dp=t.closest("[data-del-play]");
   if(dp){
     var pid=dp.getAttribute("data-del-play");
     ask("Eliminare?","Questo movimento di gioco sparisce e il saldo si ricalcola.","Elimina",function(){
       S.play=S.play.filter(function(x){return x.id!==pid;});unpost("play:"+pid);
       save();render();toast("Eliminato");
-    });
-    return;
-  }
-  var dor=t.closest("[data-delorder]");
-  if(dor){
-    var oid=dor.getAttribute("data-delorder");
-    var nsales=S.sales.filter(function(x){return x.oid===oid;}).length;
-    ask("Eliminare l'ordine?",nsales?("Spariscono anche le "+nsales+" vendite collegate."):"Sparisce anche la spesa collegata.","Elimina",function(){
-      S.sales.filter(function(x){return x.oid===oid;}).forEach(function(x){unpost("sale:"+x.id);});
-      S.sales=S.sales.filter(function(x){return x.oid!==oid;});
-      S.orders=S.orders.filter(function(o){return o.id!==oid;});
-      unpost("order:"+oid);unpost("order2:"+oid);
-      save();closeSheet();render();toast("Ordine eliminato");
     });
     return;
   }
@@ -2201,7 +1707,7 @@ document.addEventListener("click",function(e){
     return;
   }
   if(t.id==="wipe"){
-    ask("Cancellare tutto?","Sparisce ogni movimento, ordine, debito e soldi da riavere. Non si torna indietro.","Cancella tutto",function(){
+    ask("Cancellare tutto?","Spariscono tutti i dati, compreso lo storico conservato nel backup. Non si torna indietro.","Cancella tutto",function(){
       S=JSON.parse(JSON.stringify(blank));save();go("home");toast("Tutto cancellato");
     });
     return;
@@ -2217,9 +1723,6 @@ document.addEventListener("focusin",function(e){
 
 document.addEventListener("keydown",function(e){
   if(e.key==="Escape")closeSheet();
-  if((e.key==="Enter"||e.key===" ")&&e.target.matches('[data-order][role="button"]')){
-    e.preventDefault();e.target.click();
-  }
   if(e.key==="Tab"&&document.getElementById("sheet").classList.contains("on")&&!document.getElementById("ask").classList.contains("on")){
     var items=Array.prototype.filter.call(document.querySelectorAll('#sheet button,#sheet input,#sheet select,#sheet textarea'),function(el){return !el.disabled&&el.getClientRects().length;});
     var first=items[0],last=items[items.length-1];

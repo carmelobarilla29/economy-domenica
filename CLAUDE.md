@@ -17,7 +17,7 @@ Vanilla JS, niente build, niente dipendenze, niente framework. Tutto in
   (nessuna migrazione da altre app)
 - **ledger** — un unico registro di movimenti; i saldi sono sempre calcolati
   sommando il registro, mai memorizzati
-- **viste** — funzioni `vHome`, `vMov`, `vBiz`, `vPlay`, `vDebts`, `vLoans`,
+- **viste** — funzioni `vHome`, `vMov`, `vPlay`, `vDebts`, `vLoans`,
   `vStats`, `vBackup`, ognuna ritorna una stringa HTML; `render()` la inietta
 - **pannelli** — le funzioni `sheet*` aprono i moduli di inserimento
 
@@ -86,6 +86,23 @@ movimenti veri, perché quello è il nome che legge lui.
 Le righe con `ref` non si modificano dai Movimenti: si cambia l'oggetto
 d'origine e le righe vengono riscritte. `unpost(ref)` cancella tutte le righe
 di un ref.
+
+## Business rimosso su richiesta
+
+Business, magazzino, ordini, vendite e profitto delle vendite non fanno più
+parte dell'interfaccia. Home e menu Aggiungi non devono proporli. La navigazione
+ha solo Home, Movimenti e Andamento. Non reintrodurli senza richiesta.
+
+Gli eventuali dati precedenti in `S.orders` e `S.sales` e i movimenti collegati
+restano intatti, compresi nei backup. Non cancellarli all'avvio e non ricalcolare
+o stornare le relative spese/entrate: rimuovere una sezione non cambia i saldi.
+I movimenti collegati a order:, order2: e sale: sono consultabili nello storico
+in sola lettura, senza inviti a modificare sezioni che non esistono più.
+Il portafoglio Vinted e la categoria generica Vendita restano disponibili per
+registrare soldi personali, senza gestione di magazzino.
+
+Le note sotto su ordini e magazzino descrivono il vecchio modello, conservato
+solo per compatibilità con i backup. Questa decisione prevale su quelle note.
 
 ## Le decisioni, e perché
 
